@@ -1,0 +1,8 @@
+{
+  "stroke-association" : {
+    "merchantId": "test",
+    "publicKey": "test",
+    "privateKey": "test",
+    "topicName" : "test"
+  }
+}
