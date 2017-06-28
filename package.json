@@ -1,0 +1,40 @@
+{
+  "name": "basil-donations-endpoint-v2",
+  "version": "0.0.1",
+  "private": true,
+  "license": "",
+  "author": "Louzoid",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": ">=4.3.2"
+  },
+  "scripts": {
+    "lint": "esw index.js index.test.js gatewayLoader.js --color",
+    "lint:watch": "npm run lint -- --watch",
+    "security-check": "nsp check",
+    "test": "mocha --reporter spec \"*.test.js\"",
+    "test:watch": "npm run test -- --watch"
+  },
+  "devDependencies": {
+    "@google-cloud/nodejs-repo-tools": "1.4.7",
+    "chai": "3.5.0",
+    "eslint": "3.8.1",
+    "eslint-plugin-import": "2.0.1",
+    "eslint-watch": "2.1.14",
+    "mocha": "3.1.2",
+    "nsp": "^2.6.3",
+    "proxyquire": "^1.8.0",
+    "sinon": "^2.3.5"
+  },
+  "dependencies": {
+    "braintree": "^2.0.2",
+    "safe-buffer": "5.0.1"
+  },
+  "cloud-repo-tools": {
+    "requiresKeyFile": true,
+    "requiresProjectId": true
+  }
+}

@@ -1,0 +1,6 @@
+{
+"clientId":"bert",
+"amount":"3",
+"payment_method_nonce":"fake-valid-nonce",
+"email":"test@test.com"
+}
