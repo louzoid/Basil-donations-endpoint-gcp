@@ -1,5 +1,5 @@
 {
-"clientId":"bert",
+"clientId":"stroke-association",
 "amount":"3",
 "payment_method_nonce":"fake-valid-nonce",
 "email":"test@test.com"

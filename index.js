@@ -2,10 +2,15 @@
 
 //const gwl = require('./gatewayLoader'); //can't do this as GCP won't include in bundle.  Has to be npm package
 const braintree = require('braintree');
-var config = require("./config.default.json");
+var config = require("./config.default.real.json");
 const PubSub = require('@google-cloud/pubsub');
+const projectId = 'basil-donate';
+const pubsub = new PubSub({
+  projectId: projectId
+});
 
 const min = 1, max = 1000000; //todo: these need to go in the config
+//Note!! Always run as administrator for emulator no workie
 //how to use the google cloud functions emulator: https://cloud.google.com/functions/docs/emulator
 
 exports.getToken = function getToken(req, res) {
@@ -78,7 +83,7 @@ exports.postDonation = function postDonation(req, res) {
     if (result.success) {
       console.log("Transaction created with id: " + result.transaction.id);
       //do something!!
-      //publishDonationMessage(clientId, { transaction: result, headers: req.headers });
+      publishDonationMessage(clientId, { transaction: result, headers: req.headers });
       res.status(200).send("OK"); //todo - decide what to return
     }
     else {
@@ -90,9 +95,8 @@ exports.postDonation = function postDonation(req, res) {
 }
 
 function publishDonationMessage(clientId, messageBody) {
-  const pubsub = PubSub();
   const topicName = config[clientId].topicName;
-  getTopic(pubsub, topicName, function(err, topic) {
+  getTopic(topicName, function(err, topic) {
     if (err) {
       //todo: if something goes wrong in this function, we should save a backup copy of trans
       console.log(err); return;
@@ -102,7 +106,7 @@ function publishDonationMessage(clientId, messageBody) {
     }, (err, results) => {
       if (err) {
         //todo: if something goes wrong in this function, we should save a backup copy of trans
-        console.log('Error occurred while queuing background task', err);
+        console.log('Error occurred while queuing background task');
       } else {
         const messageIds = results[0];
         console.log("Message " + messageIds[0] + " published.");
@@ -112,7 +116,7 @@ function publishDonationMessage(clientId, messageBody) {
 }
 
 //this will create a bit of latency... better way to ensure topic exists/create topic?
-function getTopic (pubsub, topicName, cb) {
+function getTopic (topicName, cb) {
   pubsub.createTopic(topicName, (err, topic) => {
     // topic already exists.
     if (err && err.code === 409) {
@@ -169,4 +173,10 @@ exports._isAmountValid = function _isAmountValid(amount) {
 }
 exports._isEmailValid = function _isEmailValid(email) {
   return isEmailValid(email);
+}
+exports._getTopic = function _getTopic(pubsub, topicName, cb) {
+  return getTopic(pubsub, topicName, cb);
+}
+exports._publishDonationMessage = function _publishDonationMessage(clientId, messageBody) {
+  return publishDonationMessage(clientId, messageBody);
 }

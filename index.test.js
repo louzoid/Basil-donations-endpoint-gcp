@@ -4,19 +4,26 @@
 var chai = require("chai"), //assertions
   should = chai.should(), // eslint-disable-line no-unused-vars
   sinon = require("sinon"), //spies & stubs
-  //expect = chai.expect,
+  expect = chai.expect,
   proxyquire = require("proxyquire").noCallThru(); //so you can stub 'require' objs
+
+const tools = require(`@google-cloud/nodejs-repo-tools`);
 
 var gateway = { clientToken: { }, transaction: { } };
 const connect = sinon.stub().returns(gateway);
 const braintree = { connect: connect, Environment: { Sandbox: "" } };
-const topic = { publish: sinon.stub().returns(Promise.resolve()) };
-const pubsub = { topic: sinon.stub().returns(topic) };
+const messageIds = [ 1, 2 ];
+const ttopic = { publish: sinon.stub().callsArgWith(1, null, [ messageIds ]) };
+const pubsub = {
+  createTopic: sinon.stub().callsArgWith(1, null, ttopic), //default.  but how to override default?
+  topic: sinon.stub().returns(ttopic)
+};
+const PubSub = sinon.stub().returns(pubsub);
 
 const clientId = "stroke-association";
 
 function getProgram() {
-  return  { sample: proxyquire('./index', { 'braintree' : braintree, '@google-cloud/pubsub' : pubsub }) }
+  return  { sample: proxyquire('./index', { 'braintree' : braintree, '@google-cloud/pubsub' : PubSub }) }
 }
 
 function getMocks() {
@@ -35,13 +42,6 @@ function getMocks() {
 }
 
 describe("Token tests", function () {
-
-  /*  beforeEach(function() {
-    tools.stubConsole;
-  });
-  afterEach(function() {
-    tools.restoreConsole;
-  });*/
 
   it('should return a 400 error if no clientId is provided', function() {
     const mocks = getMocks();
@@ -143,6 +143,55 @@ describe("Donation tests", function () {
     p.postDonation(mocks.req, mocks.res);
     mocks.res.send.calledOnce.should.equal(true);
     mocks.res.status.firstCall.args[0].should.equal(200);
+  });
+
+});
+
+beforeEach(tools.stubConsole);
+afterEach(tools.restoreConsole);
+
+describe("Publish message tests", function () {
+
+  it('should return a topic if passed a topicName that already exists', function(done) {
+    const p = getProgram().sample;
+    pubsub.createTopic = sinon.stub().yields({ code: 409 });
+    p._getTopic("topicName", function (err, t) {
+      expect(t).to.equal(ttopic);
+      done();
+    });
+  });
+
+  it('should return an error if createTopic fails', function(done) {
+    const p = getProgram().sample;
+    pubsub.createTopic = sinon.stub().yields({ code: 400 });
+    p._getTopic("topicName", function (err) {
+      expect(err.code).to.eq(400);
+      done();
+    });
+  });
+
+  xit('should [do something useful] when publishing a message fails', function(done) {
+    const p = getProgram().sample;
+    PubSub.createTopic = sinon.stub().yields({ code: 400 });
+    const message = "hello!";
+    p._publishDonationMessage(clientId, message, function()  {
+      //todo
+      done();
+    });
+  });
+
+  it('should log message ids when a publish is successful', function() {
+    const p = getProgram().sample;
+    pubsub.createTopic = sinon.stub().callsArgWith(1, null, ttopic);
+    p._publishDonationMessage(clientId, "hello");
+    console.log.firstCall.args[0].should.equal("Message 1 published.");
+  });
+
+   it('should log message error message if publish was not successful', function() {
+    const p = getProgram().sample;
+    ttopic.publish = sinon.stub().yields({ code: 400 }, null);
+    p._publishDonationMessage(clientId, "");
+    console.log.firstCall.args[0].should.equal("Error occurred while queuing background task");
   });
 
 });
